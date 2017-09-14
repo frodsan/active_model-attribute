@@ -25,7 +25,7 @@ module ActiveModel
       def attribute(name, type, **options)
         return if attributes.include?(name)
 
-        attributes << name unless options[:virtual]
+        attributes << name unless options.delete(:virtual)
 
         getter = name.to_sym
         setter = :"#{name}="
