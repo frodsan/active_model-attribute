@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name          = "active_model-attribute"
-  s.version       = "0.0.2"
+  s.version       = "0.0.3"
   s.author        = "Francesco Rodríguez"
   s.email         = "frodsan@protonmail.com"
 
