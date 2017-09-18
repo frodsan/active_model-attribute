@@ -57,9 +57,10 @@ module ActiveModel
 
     def attribute=(attr, value)
       type, options = self.class.attribute_registry[attr.to_s]
-      casted_value = ActiveModel::Type.lookup(type, **options).cast(value)
 
-      instance_variable_set(:"@#{attr}", casted_value)
+      value = ActiveModel::Type.lookup(type, **options).cast(value)
+
+      instance_variable_set(:"@#{attr}", value)
     end
 
     def attribute?(attr)
