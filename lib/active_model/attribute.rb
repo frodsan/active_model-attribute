@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 require "active_support/concern"
-require "active_model/forbidden_attributes_protection"
-require "active_model/attribute_assignment"
+require "active_model"
 require "active_model/type"
 
 module ActiveModel
@@ -10,42 +9,35 @@ module ActiveModel
     extend ActiveSupport::Concern
 
     included do
+      include ActiveModel::AttributeMethods
       include ActiveModel::AttributeAssignment
+
+      class_attribute :attributes, :attribute_registry,
+                      instance_accessor: false,
+                      instance_predicate: false
+
+      self.attributes = []
+      self.attribute_registry = {}
+
+      attribute_method_suffix '='
+      attribute_method_suffix '?'
     end
 
     class_methods do
-      def inherited(subclass)
-        subclass.attributes.replace(attributes)
-      end
+      def attribute(name, type, options = {})
+        name = name.to_s
 
-      def attributes
-        @attributes ||= []
-      end
+        self.attribute_registry = attribute_registry.merge(name => [type, options])
 
-      def attribute(name, type, **options)
-        attributes << name unless attributes.include?(name)
+        self.attributes = attribute_registry.keys
 
-        getter = name.to_sym
-        setter = :"#{name}="
+        define_attribute_method(name)
 
-        define_method(getter) do
-          @attributes[getter]
-        end
-
-        define_method(setter) do |value|
-          @attributes[getter] = ActiveModel::Type.lookup(type, **options).cast(value)
-        end
-      end
-
-      def alias_attribute(new_name, old_name)
-        alias_method new_name, old_name
-        alias_method :"#{new_name}=", :"#{old_name}="
+        attr_reader(name)
       end
     end
 
     def initialize(attrs = {})
-      @attributes = {}
-
       assign_attributes(attrs) if attrs
 
       super()
@@ -59,6 +51,19 @@ module ActiveModel
       attrs.each_with_object({}) do |name, hash|
         hash[name] = send(name)
       end
+    end
+
+    private
+
+    def attribute=(attr, value)
+      type, options = self.class.attribute_registry[attr.to_s]
+      casted_value = ActiveModel::Type.lookup(type, **options).cast(value)
+
+      instance_variable_set(:"@#{attr}", casted_value)
+    end
+
+    def attribute?(attr)
+      send(attr).present?
     end
   end
 end
